@@ -28,17 +28,14 @@ const cleanUrl = (url) => {
   return cleaned;
 };
 
-
 // Detect file type automatically
 const detectFileType = (url) => {
   if (!url) return "link";
 
   const lower = url.toLowerCase();
 
-  // PDF detection
   if (lower.endsWith(".pdf")) return "pdf";
 
-  // Standard image extensions
   if (
     lower.includes(".png") ||
     lower.includes(".jpg") ||
@@ -48,15 +45,8 @@ const detectFileType = (url) => {
     return "image";
   }
 
-  // 🔥 Google image CDN detection
-  if (lower.includes("lh3.googleusercontent.com")) {
-    return "image";
-  }
-
-  // 🔥 Imgur domain detection
-  if (lower.includes("imgur.com")) {
-    return "image";
-  }
+  if (lower.includes("lh3.googleusercontent.com")) return "image";
+  if (lower.includes("imgur.com")) return "image";
 
   return "link";
 };
@@ -67,17 +57,16 @@ const buildFileArray = (field) => {
   return field
     .toString()
     .split("|")
-    .map(link => link.trim())
-    .filter(link => link.length > 0)
-    .map(link => {
-      const cleaned = cleanUrl(link); // CLEAN FIRST
+    .map((link) => link.trim())
+    .filter((link) => link.length > 0)
+    .map((link) => {
+      const cleaned = cleanUrl(link);
       return {
-        fileType: detectFileType(cleaned), // THEN DETECT
-        url: cleaned
+        fileType: detectFileType(cleaned),
+        url: cleaned,
       };
     });
 };
-
 
 /* ===============================
    MAIN CONTROLLER
@@ -92,7 +81,9 @@ exports.uploadExcel = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const workbook = XLSX.readFile(req.file.path);
+    // ✅ FIX: Read Excel from memory buffer (NOT from file path)
+    const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(sheet);
 
@@ -167,7 +158,6 @@ exports.uploadExcel = async (req, res) => {
       }
 
       /* ===== CREATE PAPER ===== */
-
       await Paper.create(
         [
           {
@@ -178,8 +168,6 @@ exports.uploadExcel = async (req, res) => {
             variant,
 
             questionPaper: buildFileArray(questionPaper),
-
-          
 
             markScheme: markScheme
               ? {
