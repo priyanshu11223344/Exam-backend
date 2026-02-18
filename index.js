@@ -4,21 +4,17 @@ const cors = require("cors");
 
 const app = express();
 
+// Connect DB once
+connectDB();
+
 app.use(express.json());
 
 app.use(
   cors({
-    origin: "*", // change this for production frontend URL
+    origin: "*",
   })
 );
 
-// Ensure DB is connected before handling request
-app.use(async (req, res, next) => {
-  await connectDB();
-  next();
-});
-
-// Routes
 app.use("/api/boards", require("./routes/board.routes"));
 app.use("/api/subjects", require("./routes/subject.routes"));
 app.use("/api/topics", require("./routes/topic.routes"));

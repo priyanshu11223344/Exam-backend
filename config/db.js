@@ -1,22 +1,24 @@
 const mongoose = require("mongoose");
-require("dotenv").config();
 
-const URI = process.env.MONGO_URI;
+let cached = global.mongoose;
 
-let isConnected = false;
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
 
 const connectDB = async () => {
-  if (isConnected) {
-    return;
+  if (cached.conn) return cached.conn;
+
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(process.env.MONGO_URI).then((mongoose) => {
+      return mongoose;
+    });
   }
 
-  try {
-    const db = await mongoose.connect(URI);
-    isConnected = db.connections[0].readyState === 1;
-    console.log("Connected to DB");
-  } catch (error) {
-    console.error("DB connection error:", error);
-  }
+  cached.conn = await cached.promise;
+  console.log("Connected to DB");
+
+  return cached.conn;
 };
 
 module.exports = connectDB;
