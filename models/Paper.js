@@ -19,7 +19,9 @@ const paperSchema = new mongoose.Schema({
     ref: "Topic",
     required: true
   },
-
+  topicName:{
+    type:String
+  },
   year: {
     type: Number,
     required: true

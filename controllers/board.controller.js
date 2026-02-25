@@ -21,18 +21,27 @@ exports.createBoard=async(req,res)=>{
     console.error(error.message);
  }
 }
-exports.getBoards=async(req,res)=>{
-    try {
-        const boards=await Board.find().lean();
-        res.status(200).json({
-            success:true,
-            count:boards.length,
-            data:boards,
-        })
-    } catch (error) {
-        console.error(error.message);
-    }
+exports.getBoards = async (req, res) => {
+  try {
+      const boards = await Board.find().lean();
+
+      return res.status(200).json({
+          success: true,
+          count: boards.length,
+          data: boards,
+      });
+
+  } catch (error) {
+      console.error(error.message);
+
+      return res.status(500).json({
+          success: false,
+          message: "Failed to fetch boards",
+          error: error.message
+      });
+  }
 };
+
 exports.getBoardById = async (req, res) => {
     try {
       const board = await Board.findById(req.params.id).lean();

@@ -28,14 +28,17 @@ const cleanUrl = (url) => {
   return cleaned;
 };
 
+
 // Detect file type automatically
 const detectFileType = (url) => {
   if (!url) return "link";
 
   const lower = url.toLowerCase();
 
+  // PDF detection
   if (lower.endsWith(".pdf")) return "pdf";
 
+  // Standard image extensions
   if (
     lower.includes(".png") ||
     lower.includes(".jpg") ||
@@ -45,8 +48,15 @@ const detectFileType = (url) => {
     return "image";
   }
 
-  if (lower.includes("lh3.googleusercontent.com")) return "image";
-  if (lower.includes("imgur.com")) return "image";
+  // 🔥 Google image CDN detection
+  if (lower.includes("lh3.googleusercontent.com")) {
+    return "image";
+  }
+
+  // 🔥 Imgur domain detection
+  if (lower.includes("imgur.com")) {
+    return "image";
+  }
 
   return "link";
 };
@@ -57,16 +67,17 @@ const buildFileArray = (field) => {
   return field
     .toString()
     .split("|")
-    .map((link) => link.trim())
-    .filter((link) => link.length > 0)
-    .map((link) => {
-      const cleaned = cleanUrl(link);
+    .map(link => link.trim())
+    .filter(link => link.length > 0)
+    .map(link => {
+      const cleaned = cleanUrl(link); // CLEAN FIRST
       return {
-        fileType: detectFileType(cleaned),
-        url: cleaned,
+        fileType: detectFileType(cleaned), // THEN DETECT
+        url: cleaned
       };
     });
 };
+
 
 /* ===============================
    MAIN CONTROLLER
@@ -81,9 +92,7 @@ exports.uploadExcel = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    // ✅ FIX: Read Excel from memory buffer (NOT from file path)
-    const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
-
+    const workbook = XLSX.readFile(req.file.path);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(sheet);
 
@@ -158,16 +167,20 @@ exports.uploadExcel = async (req, res) => {
       }
 
       /* ===== CREATE PAPER ===== */
+
       await Paper.create(
         [
           {
             topic: topicDoc._id,
+            topicName:topicDoc.name,
             year,
             season,
             paperNumber,
             variant,
 
             questionPaper: buildFileArray(questionPaper),
+
+          
 
             markScheme: markScheme
               ? {

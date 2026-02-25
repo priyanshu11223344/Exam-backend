@@ -21,7 +21,7 @@ exports.createPaper=async(req,res)=>{
           message: "Required fields are missing",
         });
       }
-     const topic=await Topic.findById(topicId).select("subject");
+     const topic=await Topic.findById(topicId).select("subject name");
      if(!topic){
         return res.status(404).json({
             message:"Topic not found",
@@ -29,6 +29,7 @@ exports.createPaper=async(req,res)=>{
      } 
      const paper=await Paper.create({
         topic:topicId,
+        topicName:topic.name,
         year,
       season,
       paperNumber,
@@ -39,6 +40,7 @@ exports.createPaper=async(req,res)=>{
       specialComment,
 
      });
+     console.log("Topic name being saved:", topic.name);
       // 3️⃣ Increment paper count in Topic
     await Topic.findByIdAndUpdate(topicId, {
         $inc: { numberOfPapers: 1 },
@@ -76,25 +78,59 @@ exports.getPapersByTopic=async(req,res)=>{
         console.error(error);
     }
 };
-exports.filterPapers=async(req,res)=>{
-    try {
-        const {topicId,year,season,paperNumber,variant}=req.query;
-        const filter={};
-        if (topicId) filter.topic = topicId;
-        if (year) filter.year = parseInt(year);
-        if (season) filter.season = season;
-        if (paperNumber) filter.paperNumber = parseInt(paperNumber);
-        if (variant) filter.variant = parseInt(variant);
-        const papers=await Paper.find(filter).sort({year:-1}).lean();
-        res.status(200).json({
-            success:true,
-            count:papers.length,
-            data:papers,
-        })
-    } catch (error) {
-        console.error(error);
+exports.filterPapers = async (req, res) => {
+  try {
+    const {
+      topicIds,
+      years,
+      seasons,
+      paperNumber,
+      variant,
+    } = req.query;
+
+    const filter = {};
+
+    // 🔥 Multiple Topics
+    if (topicIds) {
+      const topicArray = Array.isArray(topicIds)
+        ? topicIds
+        : topicIds.split(",");
+      filter.topic = { $in: topicArray };
     }
-}
+
+    // 🔥 Multiple Years
+    if (years) {
+      const yearArray = Array.isArray(years)
+        ? years
+        : years.split(",").map((y) => parseInt(y));
+      filter.year = { $in: yearArray };
+    }
+
+    // 🔥 Multiple Seasons
+    if (seasons) {
+      const seasonArray = Array.isArray(seasons)
+        ? seasons
+        : seasons.split(",");
+      filter.season = { $in: seasonArray };
+    }
+
+    if (paperNumber) filter.paperNumber = parseInt(paperNumber);
+    if (variant) filter.variant = parseInt(variant);
+
+    const papers = await Paper.find(filter)
+      .sort({ year: -1 })
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      count: papers.length,
+      data: papers,
+    });
+
+  } catch (error) {
+    console.error(error);
+  }
+};
 exports.getPaperById=async(req,res)=>{
     try {
         const paper=await Paper.findById(req.params.id)
